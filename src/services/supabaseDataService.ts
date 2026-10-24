@@ -536,6 +536,27 @@ export const supabaseDataService = {
    */
   async seedDemoDataForProfession(userId: string, profession: ProfessionType): Promise<void> {
     const conf = DEFAULT_PROFESSION_CONFIG[profession] || DEFAULT_PROFESSION_CONFIG.barbiere;
+    const baseDate = new Date('2026-10-24');
+
+    const getPastDateStr = (daysAgo: number): string => {
+      const d = new Date(baseDate);
+      d.setDate(d.getDate() - daysAgo);
+      return d.toISOString().split('T')[0];
+    };
+
+    const getFutureDateStr = (daysAhead: number): string => {
+      const d = new Date(baseDate);
+      d.setDate(d.getDate() + daysAhead);
+      return d.toISOString().split('T')[0];
+    };
+
+    const cycle = conf.defaultIntervalDays || 28;
+    const marcoLastDate = getPastDateStr(Math.round(cycle * 1.4));
+    const marcoPrevDate = getPastDateStr(Math.round(cycle * 2.8));
+    const giuliaLastDate = getPastDateStr(Math.round(cycle * 1.2));
+    const alessandroLastDate = getPastDateStr(Math.max(2, Math.round(cycle * 0.3)));
+    const alessandroFutureDate = getFutureDateStr(6);
+    const chiaraLastDate = getPastDateStr(Math.round(cycle * 1.8));
 
     const sampleClients: Omit<Client, 'id' | 'createdAt'>[] = [
       {
@@ -544,9 +565,9 @@ export const supabaseDataService = {
         email: 'marco.rossi@example.com',
         preferredChannel: 'whatsapp',
         lastService: conf.typicalServices[0] || 'Servizio Principale',
-        lastContactDate: '2026-09-12', // Oltre il ciclo -> Da ricontattare!
+        lastContactDate: marcoLastDate, // Oltre il ciclo -> Da ricontattare!
         recommendedRecallDays: conf.defaultIntervalDays,
-        notes: 'Cliente abituale, preferisce il giovedì pomeriggio.',
+        notes: 'Cliente abituale, preferisce il pomeriggio.',
       },
       {
         name: 'Giulia Bianchi',
@@ -554,7 +575,7 @@ export const supabaseDataService = {
         email: 'giulia.b@example.com',
         preferredChannel: 'whatsapp',
         lastService: conf.typicalServices[1] || 'Servizio 2',
-        lastContactDate: '2026-09-28', // In ritardo
+        lastContactDate: giuliaLastDate, // In ritardo rispetto alla frequenza
         recommendedRecallDays: conf.defaultIntervalDays,
         notes: 'Molto attenta alla puntualità.',
       },
@@ -564,19 +585,19 @@ export const supabaseDataService = {
         email: 'a.ferrari@example.com',
         preferredChannel: 'sms',
         lastService: conf.typicalServices[0] || 'Servizio 1',
-        lastContactDate: '2026-10-18', // Recente (in regola!)
+        lastContactDate: alessandroLastDate, // Recente (in regola!)
         recommendedRecallDays: conf.defaultIntervalDays,
-        notes: 'Ha un appuntamento futuro programmato.',
+        notes: 'Ha già un appuntamento futuro programmato.',
       },
       {
         name: 'Chiara Esposito',
         phone: '+39 320 8887766',
         email: 'chiara.esposito@example.com',
         preferredChannel: 'email',
-        lastService: conf.typicalServices[2] || 'Servizio Speciale',
-        lastContactDate: '2026-08-15', // Molto in ritardo!
+        lastService: conf.typicalServices[2] || conf.typicalServices[0] || 'Trattamento Speciale',
+        lastContactDate: chiaraLastDate, // Molto in ritardo!
         recommendedRecallDays: conf.defaultIntervalDays,
-        notes: 'Contattare via email o WhatsApp prima delle 18.',
+        notes: 'Contattare preferibilmente la mattina prima delle 12.',
       },
     ];
 
@@ -588,15 +609,15 @@ export const supabaseDataService = {
         await this.addAppointment(userId, {
           clientId: created.id,
           clientName: created.name,
-          date: '2026-08-22',
+          date: marcoPrevDate,
           service: cli.lastService,
           status: 'svolto',
-          notes: 'Seduta regolare.',
+          notes: 'Prima seduta registrata.',
         });
         await this.addAppointment(userId, {
           clientId: created.id,
           clientName: created.name,
-          date: '2026-09-12',
+          date: marcoLastDate,
           service: cli.lastService,
           status: 'svolto',
           notes: 'Ultimo appuntamento completato.',
@@ -608,17 +629,17 @@ export const supabaseDataService = {
         await this.addAppointment(userId, {
           clientId: created.id,
           clientName: created.name,
-          date: '2026-10-18',
+          date: alessandroLastDate,
           service: cli.lastService,
           status: 'svolto',
         });
         await this.addAppointment(userId, {
           clientId: created.id,
           clientName: created.name,
-          date: '2026-10-30', // Futuro rispetto al 24 ottobre 2026!
+          date: alessandroFutureDate, // Data futura!
           service: cli.lastService,
           status: 'programmato',
-          notes: 'Già prenotato per la prossima settimana.',
+          notes: 'Già prenotato per i prossimi giorni.',
         });
       }
     }

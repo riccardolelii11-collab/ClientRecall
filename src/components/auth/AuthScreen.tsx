@@ -10,23 +10,21 @@ import {
   KeyRound,
   ShieldCheck,
   ChevronLeft,
-  CalendarCheck2,
   HelpCircle,
-  ExternalLink,
   Copy,
   Check,
   Zap,
   ChevronDown,
   ChevronUp,
   Link as LinkIcon,
-  Info,
+  Globe,
 } from 'lucide-react';
 import { useAuth } from '../../services/authContext';
 
 type AuthMode = 'login' | 'register' | 'forgot_password';
 
 export const AuthScreen: React.FC = () => {
-  const { signIn, signUp, resetPasswordForEmail, activateSessionFromLink, signInQuickDemo, isConfigured } = useAuth();
+  const { signIn, signUp, resetPasswordForEmail, activateSessionFromLink, signInQuickDemo } = useAuth();
 
   const [mode, setMode] = useState<AuthMode>('login');
   const [name, setName] = useState('');
@@ -39,7 +37,7 @@ export const AuthScreen: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [isEmailUnconfirmedError, setIsEmailUnconfirmedError] = useState(false);
 
-  // Email localhost helper state
+  // Email helper state for Supabase
   const [showEmailHelp, setShowEmailHelp] = useState(false);
   const [pastedLink, setPastedLink] = useState('');
   const [isActivatingLink, setIsActivatingLink] = useState(false);
@@ -106,13 +104,13 @@ export const AuthScreen: React.FC = () => {
     if (msg.includes('email not confirmed')) {
       setIsEmailUnconfirmedError(true);
       setShowEmailHelp(true);
-      return 'La tua email non è stata ancora confermata in Supabase. Questo succede perché il link nell’email puntava di default a localhost:3000 anziché a questo sito online.';
+      return 'La tua email non è stata ancora confermata in Supabase. Controlla la casella di posta o vedi le istruzioni sottostanti.';
     }
     if (msg.includes('rate limit')) {
       return 'Troppi tentativi consecutivi. Attendi qualche minuto prima di riprovare.';
     }
     if (msg.includes('network') || msg.includes('failed to fetch')) {
-      return 'Errore di connessione a Supabase. Verifica che il tuo progetto Supabase sia attivo e l’URL sia raggiungibile.';
+      return 'Errore di connessione a Supabase. Verifica che il database sia raggiungibile.';
     }
 
     return err?.message || 'Si è verificato un errore durante l’operazione. Riprova tra poco.';
@@ -135,7 +133,7 @@ export const AuthScreen: React.FC = () => {
         if (error) {
           setErrorMessage(translateAuthError(error));
         } else {
-          setSuccessMessage('Accesso riuscito! Caricamento della tua area riservata...');
+          setSuccessMessage('Accesso riuscito! Caricamento in corso...');
         }
       } else if (mode === 'register') {
         if (!name.trim()) {
@@ -154,7 +152,7 @@ export const AuthScreen: React.FC = () => {
           return;
         }
         if (password !== confirmPassword) {
-          setErrorMessage('Le due password inserite non coincidono. Riprova.');
+          setErrorMessage('Le due password inserite non coincidono.');
           setIsSubmitting(false);
           return;
         }
@@ -164,18 +162,17 @@ export const AuthScreen: React.FC = () => {
           setErrorMessage(translateAuthError(error));
         } else {
           if (session) {
-            setSuccessMessage('Registrazione completata con successo! Benvenuto in ClientRecall.');
+            setSuccessMessage('Registrazione completata! Benvenuto in ClientRecall.');
           } else {
             setSuccessMessage(
-              'Registrazione inviata! Se ricevi l’email con link localhost:3000, consulta il riquadro sottostante per completare l’accesso in 30 secondi.'
+              'Registrazione inviata con successo! Abbiamo inviato l’email di conferma al tuo indirizzo. Clicca sul link nell’email per accedere.'
             );
-            setShowEmailHelp(true);
             setMode('login');
           }
         }
       } else if (mode === 'forgot_password') {
         if (!email.trim()) {
-          setErrorMessage('Inserisci il tuo indirizzo email per ricevere il link di ripristino.');
+          setErrorMessage('Inserisci la tua email per ricevere il link di ripristino.');
           setIsSubmitting(false);
           return;
         }
@@ -185,7 +182,7 @@ export const AuthScreen: React.FC = () => {
           setErrorMessage(translateAuthError(error));
         } else {
           setSuccessMessage(
-            'Ti abbiamo inviato un’email con le istruzioni per reimpostare la tua password.'
+            'Ti abbiamo inviato un’email con il link per reimpostare la tua password.'
           );
         }
       }
@@ -197,9 +194,9 @@ export const AuthScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFA] flex flex-col justify-center items-center p-4 sm:p-6 font-sans text-slate-800">
-      <div className="w-full max-w-lg bg-white rounded-3xl border border-teal-900/10 shadow-xl overflow-hidden p-6 sm:p-8 space-y-6">
-        {/* Brand & Title */}
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-[#F8FAFA] to-teal-50/20 flex flex-col justify-center items-center p-4 sm:p-6 font-sans text-slate-800">
+      <div className="w-full max-w-md bg-white rounded-3xl border border-slate-200/80 shadow-xl overflow-hidden p-6 sm:p-8 space-y-6">
+        {/* Brand & Header */}
         <div className="text-center space-y-2">
           <div className="relative w-12 h-12 mx-auto rounded-2xl bg-gradient-to-tr from-[#083338] via-[#0D5C63] to-[#14B8A6] flex items-center justify-center text-white shadow-md">
             <Sparkles className="w-6 h-6 text-white" />
@@ -210,15 +207,15 @@ export const AuthScreen: React.FC = () => {
             <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
               ClientRecall
             </h1>
-            <p className="text-xs text-teal-800 font-semibold tracking-wider uppercase mt-0.5">
-              Attività & Professionisti su Appuntamento
+            <p className="text-[11px] text-teal-800 font-semibold tracking-wider uppercase mt-0.5">
+              Intelligenza per Professionisti su Appuntamento
             </p>
           </div>
 
           <p className="text-xs text-slate-500 max-w-xs mx-auto">
-            {mode === 'login' && 'Accedi con il tuo account Supabase per gestire clienti e promemoria di recall.'}
-            {mode === 'register' && 'Crea un nuovo account per gestire i ricontatti della tua attività.'}
-            {mode === 'forgot_password' && 'Inserisci la tua email per ricevere il link di ripristino password.'}
+            {mode === 'login' && 'Accedi al tuo account per gestire clienti e promemoria di recall.'}
+            {mode === 'register' && 'Crea un account per la tua attività e inizia a ricontattare i clienti.'}
+            {mode === 'forgot_password' && 'Inserisci la tua email per reimpostare la password.'}
           </p>
         </div>
 
@@ -263,7 +260,7 @@ export const AuthScreen: React.FC = () => {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="es. Riccardo Lelli / Studio Fisio"
+                placeholder="es. Riccardo Lelli o Barberia Centrale"
                 className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-700/20 focus:border-teal-700 transition-all text-slate-800"
               />
             </div>
@@ -279,8 +276,8 @@ export const AuthScreen: React.FC = () => {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="es. riccardo.lelii11@gmail.com"
-              className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-700/20 focus:border-teal-700 transition-all text-slate-800 font-mono"
+              placeholder="es. nome@studio.it"
+              className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-700/20 focus:border-teal-700 transition-all text-slate-800"
             />
           </div>
 
@@ -331,13 +328,13 @@ export const AuthScreen: React.FC = () => {
 
           {/* Feedback Messages */}
           {errorMessage && (
-            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-2.5 text-xs text-rose-800 animate-in fade-in">
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-2.5 text-xs text-rose-800 animate-in fade-in">
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <p className="font-medium leading-relaxed">{errorMessage}</p>
                 {isEmailUnconfirmedError && (
                   <p className="text-[11px] text-rose-700">
-                    💡 Vedi sotto la guida rapida per confermare l’account in 1 clic su Supabase o incollare il link ricevuto.
+                    💡 Se hai appena registrato l’account, puoi confermarlo via email o disattivare la conferma email dal pannello Supabase.
                   </p>
                 )}
               </div>
@@ -355,18 +352,18 @@ export const AuthScreen: React.FC = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-3 px-4 bg-teal-800 hover:bg-teal-900 disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-sm shadow-teal-900/15 active:scale-[0.99]"
+            className="w-full py-3 px-4 bg-teal-800 hover:bg-teal-900 disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-sm shadow-teal-900/15 active:scale-[0.99] cursor-pointer"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Verifica in corso...</span>
+                <span>Accesso in corso...</span>
               </span>
             ) : (
               <>
                 <span>
                   {mode === 'login' && 'Accedi a ClientRecall'}
-                  {mode === 'register' && 'Crea il tuo Account'}
+                  {mode === 'register' && 'Crea Account ed Entra'}
                   {mode === 'forgot_password' && 'Invia Link di Ripristino'}
                 </span>
                 <ArrowRight className="w-4 h-4" />
@@ -375,150 +372,111 @@ export const AuthScreen: React.FC = () => {
           </button>
         </form>
 
-        {/* Direct 1-Click Test Access Button */}
+        {/* 1-Click Fast Test Access */}
         <div className="pt-1">
           <button
             type="button"
             onClick={() => signInQuickDemo(email || 'riccardo.lelii11@gmail.com', name || 'Riccardo Lelli')}
-            className="w-full py-2.5 px-4 bg-teal-50 hover:bg-teal-100/80 text-teal-900 border border-teal-200/80 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-xs active:scale-[0.99]"
+            className="w-full py-2.5 px-4 bg-teal-50/80 hover:bg-teal-100/90 text-teal-950 border border-teal-200/80 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 shadow-2xs active:scale-[0.99] cursor-pointer"
           >
-            <Zap className="w-3.5 h-3.5 text-teal-600" />
-            <span>Entra subito in modalità Test Rapido (Riccardo)</span>
+            <Zap className="w-3.5 h-3.5 text-teal-700" />
+            <span>Entra subito in modalità Test Rapido</span>
           </button>
           <p className="text-[10px] text-center text-slate-400 mt-1">
-            Accesso immediato per testare clienti, calcolo frequenze, promemoria e messaggi.
+            Accesso istantaneo per configurare l'attività, provare l'onboarding e testare l'algoritmo.
           </p>
         </div>
 
-        {/* Special Helper: Email link opens localhost:3000 explanation & solutions */}
+        {/* VPS & Online Status info */}
         <div className="pt-2 border-t border-slate-100">
           <button
             type="button"
             onClick={() => setShowEmailHelp(!showEmailHelp)}
-            className="w-full py-2 px-3 rounded-xl bg-amber-50/70 hover:bg-amber-100/70 border border-amber-200/80 text-amber-900 text-xs font-semibold flex items-center justify-between transition-colors"
+            className="w-full py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 text-[11px] font-medium flex items-center justify-between transition-colors cursor-pointer"
           >
-            <span className="flex items-center gap-2 text-left">
-              <HelpCircle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>Il link dell’email ha aperto localhost:3000? Come risolvere</span>
+            <span className="flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5 text-teal-700" />
+              <span>Stato Online VPS & Conferma Email</span>
             </span>
             {showEmailHelp ? (
-              <ChevronUp className="w-4 h-4 text-amber-700 shrink-0" />
+              <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
             ) : (
-              <ChevronDown className="w-4 h-4 text-amber-700 shrink-0" />
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             )}
           </button>
 
           {showEmailHelp && (
-            <div className="mt-3 p-4 bg-amber-50/40 border border-amber-200 rounded-2xl text-xs text-slate-700 space-y-3.5 animate-in fade-in">
-              <div className="space-y-1">
-                <p className="font-semibold text-amber-950 flex items-center gap-1.5">
-                  <Info className="w-3.5 h-3.5 text-amber-700" />
-                  <span>Perché succede?</span>
-                </p>
-                <p className="text-slate-600 text-[11px] leading-relaxed">
-                  Supabase di default imposta il <strong>Site URL</strong> su <code className="bg-amber-100/60 px-1 py-0.5 rounded text-amber-950 font-mono">http://localhost:3000</code>.
-                  Poiché ClientRecall è ospitato online su Google Cloud e non in locale sul tuo PC, cliccando il link nell’email il browser tenta di aprire il tuo PC dove non c’è nessun server attivo.
-                </p>
+            <div className="mt-3 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 space-y-3 animate-in fade-in">
+              <p className="text-[11px] text-slate-600 leading-relaxed">
+                ClientRecall è ora online! Quando invii la registrazione, Supabase invia il link di conferma che reindirizza al tuo dominio:
+              </p>
+
+              <div className="flex items-center gap-1.5 bg-white p-2 rounded-lg border border-slate-200">
+                <input
+                  type="text"
+                  readOnly
+                  value={currentOrigin}
+                  className="w-full text-[11px] bg-transparent font-mono text-slate-700 select-all outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={copyCurrentOrigin}
+                  className="px-2 py-1 bg-slate-100 border border-slate-300 rounded text-[10px] font-semibold text-slate-700 hover:bg-slate-200 flex items-center gap-1 shrink-0 cursor-pointer"
+                >
+                  {copiedOrigin ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-600" />
+                      <span>Copiato</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3 text-slate-500" />
+                      <span>Copia</span>
+                    </>
+                  )}
+                </button>
               </div>
 
-              {/* Solution 1: Paste link from email or error page */}
-              <div className="p-3 bg-white rounded-xl border border-amber-200/70 space-y-2">
-                <p className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                  <LinkIcon className="w-3.5 h-3.5 text-teal-700" />
-                  <span>Soluzione 1: Incolla qui il link dell’email o di errore</span>
+              {/* Paste link helper */}
+              <div className="pt-1">
+                <p className="text-[11px] font-semibold text-slate-800 mb-1 flex items-center gap-1">
+                  <LinkIcon className="w-3 h-3 text-teal-700" />
+                  <span>Hai ricevuto il link di conferma via email?</span>
                 </p>
-                <p className="text-[11px] text-slate-500">
-                  Copia l’indirizzo dalla scheda con l’errore su localhost (es. <code className="bg-slate-100 px-1 py-0.5 rounded text-[10px] font-mono">localhost:3000/#access_token=...</code>) o il link dell’email:
-                </p>
-                <form onSubmit={handleActivatePastedLink} className="space-y-2">
+                <form onSubmit={handleActivatePastedLink} className="space-y-1.5">
                   <input
                     type="text"
                     value={pastedLink}
                     onChange={(e) => setPastedLink(e.target.value)}
-                    placeholder="Incolla l'indirizzo con #access_token=... o il link dell'email"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg font-mono focus:ring-1 focus:ring-teal-700 focus:outline-none"
+                    placeholder="Incolla qui il link di conferma per attivare subito la sessione"
+                    className="w-full px-2.5 py-1.5 text-[11px] bg-white border border-slate-200 rounded-lg font-mono focus:ring-1 focus:ring-teal-700 focus:outline-none"
                   />
                   {activationError && (
-                    <p className="text-[11px] text-rose-600 font-medium">{activationError}</p>
+                    <p className="text-[10px] text-rose-600 font-medium">{activationError}</p>
                   )}
                   <button
                     type="submit"
                     disabled={isActivatingLink}
-                    className="w-full py-2 px-3 bg-teal-800 hover:bg-teal-900 disabled:opacity-50 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
+                    className="w-full py-1.5 px-2 bg-teal-800 hover:bg-teal-900 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition-all cursor-pointer"
                   >
-                    {isActivatingLink ? 'Convalida in corso...' : 'Attiva Sessione e Accedi Subito'}
+                    {isActivatingLink ? 'Convalida...' : 'Attiva Sessione dal Link'}
                   </button>
                 </form>
-              </div>
-
-              {/* Solution 2: Turn off confirm email in Supabase dashboard */}
-              <div className="p-3 bg-white rounded-xl border border-amber-200/70 space-y-2">
-                <p className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Soluzione 2 (Consigliata per lo sviluppo): Disattiva la verifica email</span>
-                </p>
-                <ol className="list-decimal list-inside text-[11px] text-slate-600 space-y-1">
-                  <li>Apri la tua <strong>Dashboard Supabase</strong>.</li>
-                  <li>Vai su <strong>Authentication</strong> &gt; <strong>Providers</strong> &gt; <strong>Email</strong>.</li>
-                  <li>Disattiva l’interruttore <strong>"Confirm email"</strong> e clicca <strong>Save</strong>.</li>
-                  <li>
-                    Se l’utente è già registrato: vai su <strong>Authentication</strong> &gt; <strong>Users</strong>, clicca <code className="bg-slate-100 px-1 py-0.5 rounded font-mono">...</code> accanto alla tua email e seleziona <strong>"Confirm user"</strong>.
-                  </li>
-                </ol>
-                <p className="text-[11px] text-teal-800 font-medium">
-                  Così potrai accedere subito con email e password senza dover mai attendere email!
-                </p>
-              </div>
-
-              {/* Solution 3: Set Site URL to the cloud domain */}
-              <div className="p-3 bg-white rounded-xl border border-amber-200/70 space-y-2">
-                <p className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                  <ExternalLink className="w-3.5 h-3.5 text-teal-700" />
-                  <span>Soluzione 3: Imposta l’URL online in Supabase</span>
-                </p>
-                <p className="text-[11px] text-slate-600">
-                  Nel pannello Supabase su <strong>Authentication</strong> &gt; <strong>URL Configuration</strong>, imposta <strong>Site URL</strong> con l’indirizzo online di ClientRecall:
-                </p>
-                <div className="flex items-center gap-1.5 bg-slate-100 p-2 rounded-lg">
-                  <input
-                    type="text"
-                    readOnly
-                    value={currentOrigin}
-                    className="w-full text-[11px] bg-transparent font-mono text-slate-700 select-all outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={copyCurrentOrigin}
-                    className="px-2 py-1 bg-white border border-slate-300 rounded text-[10px] font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-1 shrink-0"
-                  >
-                    {copiedOrigin ? (
-                      <>
-                        <Check className="w-3 h-3 text-emerald-600" />
-                        <span>Copiato</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3 h-3 text-slate-500" />
-                        <span>Copia URL</span>
-                      </>
-                    )}
-                  </button>
-                </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer Links */}
-        <div className="pt-2 text-center text-xs text-slate-500">
+        {/* Footer Navigation */}
+        <div className="pt-1 text-center text-xs text-slate-500">
           {mode === 'forgot_password' ? (
             <button
               type="button"
               onClick={() => handleModeChange('login')}
-              className="inline-flex items-center gap-1 font-semibold text-teal-800 hover:underline"
+              className="inline-flex items-center gap-1 font-semibold text-teal-800 hover:underline cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Torna alla schermata di accesso</span>
+              <span>Torna al login</span>
             </button>
           ) : mode === 'login' ? (
             <p>
@@ -526,7 +484,7 @@ export const AuthScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleModeChange('register')}
-                className="font-semibold text-teal-800 hover:underline"
+                className="font-semibold text-teal-800 hover:underline cursor-pointer"
               >
                 Registrati gratuitamente
               </button>
@@ -537,7 +495,7 @@ export const AuthScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleModeChange('login')}
-                className="font-semibold text-teal-800 hover:underline"
+                className="font-semibold text-teal-800 hover:underline cursor-pointer"
               >
                 Accedi subito
               </button>
@@ -546,12 +504,11 @@ export const AuthScreen: React.FC = () => {
         </div>
 
         {/* Security badge */}
-        <div className="pt-3 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
+        <div className="pt-2 border-t border-slate-100 flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
           <ShieldCheck className="w-3.5 h-3.5 text-teal-700" />
-          <span>Autenticazione reale protetta da Supabase Auth</span>
+          <span>Autenticazione reale protetta con Supabase Auth & RLS</span>
         </div>
       </div>
     </div>
   );
 };
-

@@ -7,7 +7,9 @@ export type ProfessionType =
   | 'parrucchiere'
   | 'estetista'
   | 'fisioterapista'
+  | 'dentista'
   | 'personal_trainer'
+  | 'psicologo'
   | 'altro';
 
 export type AppointmentStatus = 'svolto' | 'programmato' | 'annullato';

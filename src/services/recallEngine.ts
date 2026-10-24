@@ -62,6 +62,19 @@ export const DEFAULT_PROFESSION_CONFIG: Record<
     ],
     description: 'Dopo un ciclo acuto, check di mantenimento o richiamo posturale ogni 3-4 settimane.',
   },
+  dentista: {
+    label: 'Studio Dentistico / Igienista',
+    emoji: '🦷',
+    defaultIntervalDays: 180,
+    typicalServices: [
+      'Igiene Dentale & Ablazione Tartaro',
+      'Visita di Controllo Semestrale',
+      'Controllo Ortodonzia / Allineatori',
+      'Sbiancamento Dentale Professionale',
+      'Controllo Parodontale',
+    ],
+    description: 'Richiamo di igiene e controllo periodico ogni 6 mesi per prevenire carie e infiammazioni.',
+  },
   personal_trainer: {
     label: 'Personal Trainer / Coach',
     emoji: '🏋️',
@@ -74,8 +87,20 @@ export const DEFAULT_PROFESSION_CONFIG: Record<
     ],
     description: 'Rinnovi schede e check-up periodici ogni 4 settimane.',
   },
+  psicologo: {
+    label: 'Psicologo / Nutrizionista',
+    emoji: '🧠',
+    defaultIntervalDays: 14,
+    typicalServices: [
+      'Seduta di Consulenza / Terapia',
+      'Colloquio di Monitoraggio',
+      'Visita di Controllo Nutrizionale',
+      'Valutazione Obiettivi Periodici',
+    ],
+    description: 'Follow-up e controlli periodici a frequenza quindicinale o mensile.',
+  },
   altro: {
-    label: 'Altro Professionista Indipendente',
+    label: 'Altro Professionista su Appuntamento',
     emoji: '💼',
     defaultIntervalDays: 30,
     typicalServices: [
