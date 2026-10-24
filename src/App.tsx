@@ -10,7 +10,6 @@ import { RecallsView } from './components/recalls/RecallsView';
 import { ClientsView } from './components/clients/ClientsView';
 import { AppointmentsView } from './components/appointments/AppointmentsView';
 import { GeneratorView } from './components/generator/GeneratorView';
-import { ImportsView } from './components/imports/ImportsView';
 import { SettingsView } from './components/settings/SettingsView';
 import { AppointmentModal } from './components/appointments/AppointmentModal';
 import { ClientDetailDrawer } from './components/clients/ClientDetailDrawer';
@@ -79,7 +78,11 @@ function PrivateAppContent() {
 
   // Caricamento dati isolati per l'utente loggato
   const loadUserData = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setClients([]);
+      setAppointments([]);
+      return;
+    }
     setIsDataLoading(true);
 
     try {
@@ -110,6 +113,11 @@ function PrivateAppContent() {
   useEffect(() => {
     if (user) {
       loadUserData();
+    } else {
+      setClients([]);
+      setAppointments([]);
+      setSelectedClientForRecall(null);
+      setSelectedClientForDrawer(null);
     }
   }, [user, loadUserData]);
 
@@ -262,6 +270,11 @@ function PrivateAppContent() {
   };
 
   const handleSignOut = async () => {
+    setClients([]);
+    setAppointments([]);
+    setSelectedClientForRecall(null);
+    setSelectedClientForDrawer(null);
+    setCurrentTab('dashboard');
     await signOut();
     showToast('Disconnessione effettuata', 'A presto su ClientRecall.', 'info');
   };

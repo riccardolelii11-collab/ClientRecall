@@ -137,7 +137,45 @@ export function getTodayDateString(referenceDate?: string): string {
 }
 
 /**
- * Algoritmo di analisi e individuazione dei clienti da ricontattare
+ * Calcola i giorni di tolleranza/grazia prima di avviare il ricontatto,
+ * calibrati esattamente sul ritmo personale di ciascun cliente.
+ * 
+ * Regola:
+ * - Se un cliente viene ogni giorno (1 gg): tolleranza 1 gg -> ricontatto al 2° giorno.
+ * - Se viene ogni 7 gg (settimanale): tolleranza 2 gg -> ricontatto a 9 gg.
+ * - Se viene ogni 14 gg: tolleranza 3 gg -> ricontatto a 17 gg.
+ * - Se viene ogni 30 gg: tolleranza 10 gg -> ricontatto a 40 gg (come richiesto espressamente!).
+ * - Cicli più lunghi: proporzione ~20-25%.
+ */
+export function calculateGracePeriodDays(rhythmDays: number): number {
+  if (rhythmDays <= 1) return 1;
+  if (rhythmDays <= 3) return 1;
+  if (rhythmDays <= 7) return 2;
+  if (rhythmDays <= 14) return 3;
+  if (rhythmDays <= 35) {
+    // Es. per 30 giorni: 30 * 0.33 = 10 giorni -> 30 + 10 = 40 giorni
+    return Math.max(4, Math.round(rhythmDays * 0.33));
+  }
+  return Math.min(25, Math.max(8, Math.round(rhythmDays * 0.2)));
+}
+
+/**
+ * Restituisce una descrizione testuale chiara del ritmo del cliente
+ */
+export function getRhythmDescription(rhythmDays: number): string {
+  if (rhythmDays === 1) return 'Ogni giorno (quotidiano)';
+  if (rhythmDays === 7) return 'Ogni 7 giorni (settimanale)';
+  if (rhythmDays === 14) return 'Ogni 14 giorni (quindicinale)';
+  if (rhythmDays === 21) return 'Ogni 21 giorni (3 settimane)';
+  if (rhythmDays === 30) return 'Ogni 30 giorni (mensile)';
+  if (rhythmDays === 60) return 'Ogni 60 giorni (bimestrale)';
+  if (rhythmDays === 180) return 'Ogni 6 mesi (semestrale)';
+  return `Ogni ${rhythmDays} giorni`;
+}
+
+/**
+ * Algoritmo di analisi e individuazione dei clienti da ricontattare,
+ * basato rigorosamente sul ritmo personale di ciascun cliente ("abituarsi ai loro ritmi").
  */
 export function analyzeClientRecall(
   client: Client,
@@ -183,24 +221,32 @@ export function analyzeClientRecall(
   // Ordina gli appuntamenti futuri dal più vicino
   futureAppointments.sort((a, b) => a.date.localeCompare(b.date));
 
+  const clientRhythmFallback = Math.max(1, client.recommendedRecallDays || fallbackDefaultDays);
+
   if (futureAppointments.length > 0) {
     const nextApp = futureAppointments[0];
     const daysUntilNext = diffDays(nextApp.date, today);
+    const graceDays = calculateGracePeriodDays(clientRhythmFallback);
 
     return {
       clientId: client.id,
       client,
       lastCompletedDate: mergedCompletedDates.length > 0 ? mergedCompletedDates[mergedCompletedDates.length - 1].date : null,
-      daysSinceLast: mergedCompletedDates.length > 0 ? diffDays(today, mergedCompletedDates[mergedCompletedDates.length - 1].date) : 0,
-      estimatedFrequencyDays: client.recommendedRecallDays || fallbackDefaultDays,
+      daysSinceLast: mergedCompletedDates.length > 0 ? Math.max(0, diffDays(today, mergedCompletedDates[mergedCompletedDates.length - 1].date)) : 0,
+      clientRhythmDays: clientRhythmFallback,
+      estimatedFrequencyDays: clientRhythmFallback,
+      gracePeriodDays: graceDays,
+      targetRecallDays: clientRhythmFallback + graceDays,
       isProvisional: false,
       hasFutureAppointment: true,
       nextFutureAppointmentDate: nextApp.date,
       completedAppointmentsCount: mergedCompletedDates.length,
       isRecallDue: false, // NON proporre clienti che hanno già un appuntamento futuro noto!
       overdueDays: 0,
+      overdueBeyondThreshold: 0,
       urgency: 'future_booked',
       rationale: `Appuntamento futuro già fissato per il ${nextApp.date} (${nextApp.service}, tra ${daysUntilNext} gg). Escluso automaticamente dai clienti da ricontattare.`,
+      rhythmDescription: getRhythmDescription(clientRhythmFallback),
     };
   }
 
@@ -214,30 +260,36 @@ export function analyzeClientRecall(
 
   if (!lastCompletedDate) {
     // Nessuna data disponibile
+    const graceDays = calculateGracePeriodDays(clientRhythmFallback);
     return {
       clientId: client.id,
       client,
       lastCompletedDate: null,
       daysSinceLast: 0,
-      estimatedFrequencyDays: client.recommendedRecallDays || fallbackDefaultDays,
+      clientRhythmDays: clientRhythmFallback,
+      estimatedFrequencyDays: clientRhythmFallback,
+      gracePeriodDays: graceDays,
+      targetRecallDays: clientRhythmFallback + graceDays,
       isProvisional: true,
       hasFutureAppointment: false,
       nextFutureAppointmentDate: null,
       completedAppointmentsCount: 0,
       isRecallDue: false,
       overdueDays: 0,
+      overdueBeyondThreshold: 0,
       urgency: 'ok',
       rationale: 'Nessun appuntamento registrato per questo cliente.',
+      rhythmDescription: getRhythmDescription(clientRhythmFallback),
     };
   }
 
   const daysSinceLast = Math.max(0, diffDays(today, lastCompletedDate));
 
-  let estimatedFrequencyDays: number;
+  let clientRhythmDays: number;
   let isProvisional = false;
 
   if (completedCount >= 2) {
-    // Calcola l'intervallo medio tra gli appuntamenti svolti
+    // Calcola l'intervallo medio reale tra gli appuntamenti svolti di questo specifico cliente
     const intervals: number[] = [];
     for (let i = 1; i < completedCount; i++) {
       const interval = diffDays(mergedCompletedDates[i].date, mergedCompletedDates[i - 1].date);
@@ -248,41 +300,50 @@ export function analyzeClientRecall(
 
     if (intervals.length > 0) {
       const sum = intervals.reduce((acc, curr) => acc + curr, 0);
-      estimatedFrequencyDays = Math.max(7, Math.round(sum / intervals.length));
+      // Nessun limite artificioso di 7 giorni: se un cliente viene ogni giorno o 2 giorni, il ritmo è 1 o 2 giorni!
+      clientRhythmDays = Math.max(1, Math.round(sum / intervals.length));
       isProvisional = false;
     } else {
-      estimatedFrequencyDays = client.recommendedRecallDays || fallbackDefaultDays;
+      clientRhythmDays = clientRhythmFallback;
       isProvisional = true;
     }
   } else {
-    // Meno di 2 appuntamenti svolti: usa l'intervallo iniziale configurabile e indica stima provvisoria
-    estimatedFrequencyDays = client.recommendedRecallDays || fallbackDefaultDays;
+    // Meno di 2 appuntamenti svolti: usa l'intervallo iniziale configurato sul cliente e indica stima provvisoria
+    clientRhythmDays = clientRhythmFallback;
     isProvisional = true;
   }
 
-  // 4. Determina se il cliente è da ricontattare
-  const isRecallDue = daysSinceLast > estimatedFrequencyDays;
-  const overdueDays = isRecallDue ? daysSinceLast - estimatedFrequencyDays : 0;
+  // 4. Calcola la tolleranza e la soglia di ricontatto specifica per il ritmo di questo cliente
+  const gracePeriodDays = calculateGracePeriodDays(clientRhythmDays);
+  const targetRecallDays = clientRhythmDays + gracePeriodDays;
+
+  // Un cliente entra nei "Da Ricontattare" quando i giorni trascorsi dall'ultima visita superano la soglia del suo ritmo + tolleranza
+  // Es: se viene ogni 30 giorni -> a 40 giorni (30 + 10) già puoi iniziare a scrivergli!
+  // Es: se viene ogni 1 giorno -> a 2 giorni (1 + 1) già puoi iniziare a scrivergli!
+  const isRecallDue = daysSinceLast >= targetRecallDays;
+  const overdueDays = Math.max(0, daysSinceLast - clientRhythmDays);
+  const overdueBeyondThreshold = Math.max(0, daysSinceLast - targetRecallDays);
 
   let urgency: 'urgent' | 'due' | 'ok' = 'ok';
   let rationale = '';
 
   if (isRecallDue) {
-    if (overdueDays >= 14) {
-      urgency = 'urgent';
-    } else {
-      urgency = 'due';
-    }
+    const isUrgent = overdueBeyondThreshold >= Math.max(3, Math.round(clientRhythmDays * 0.25));
+    urgency = isUrgent ? 'urgent' : 'due';
 
     if (isProvisional) {
-      rationale = `Ultimo appuntamento il ${lastCompletedDate} (${daysSinceLast} gg fa). Stima provvisoria di ${estimatedFrequencyDays} gg (pochi dati storici). In ritardo di ${overdueDays} gg.`;
+      rationale = `Ritmo stimato: ogni ${clientRhythmDays} giorni (stima iniziale, ${completedCount} seduta). Ultima visita il ${lastCompletedDate} (${daysSinceLast} gg fa). Finestra di ricontatto (${targetRecallDays} gg) superata: è il momento di scrivergli.`;
     } else {
-      rationale = `Ultimo appuntamento il ${lastCompletedDate} (${daysSinceLast} gg fa). Frequenza abituale calcolata: ${estimatedFrequencyDays} gg (su ${completedCount} appuntamenti). In ritardo di ${overdueDays} gg.`;
+      rationale = `Ritmo abituale di ${client.name}: ogni ${clientRhythmDays} giorni (appreso su ${completedCount} sedute). Ultima visita il ${lastCompletedDate} (${daysSinceLast} gg fa, +${overdueDays} gg sul ritmo). Soglia di ricontatto (${targetRecallDays} gg) raggiunta: momento ideale per scrivergli!`;
     }
   } else {
     urgency = 'ok';
-    const remainingDays = estimatedFrequencyDays - daysSinceLast;
-    rationale = `In regola. Ultimo appuntamento il ${lastCompletedDate} (${daysSinceLast} gg fa). Prossimo contatto ideale tra ${remainingDays} gg (frequenza: ${estimatedFrequencyDays} gg).`;
+    const remainingDays = targetRecallDays - daysSinceLast;
+    if (isProvisional) {
+      rationale = `In regola col ritmo stimato (ogni ${clientRhythmDays} gg). Ultima visita il ${lastCompletedDate} (${daysSinceLast} gg fa). Ricontatto consigliato tra ${remainingDays} gg.`;
+    } else {
+      rationale = `In regola col suo ritmo abituale (ogni ${clientRhythmDays} gg su ${completedCount} sedute). Ultima visita il ${lastCompletedDate} (${daysSinceLast} gg fa). Ricontatto consigliato tra ${remainingDays} gg.`;
+    }
   }
 
   return {
@@ -290,15 +351,20 @@ export function analyzeClientRecall(
     client,
     lastCompletedDate,
     daysSinceLast,
-    estimatedFrequencyDays,
+    clientRhythmDays,
+    estimatedFrequencyDays: clientRhythmDays,
+    gracePeriodDays,
+    targetRecallDays,
     isProvisional,
     hasFutureAppointment: false,
     nextFutureAppointmentDate: null,
     completedAppointmentsCount: completedCount,
     isRecallDue,
     overdueDays,
+    overdueBeyondThreshold,
     urgency,
     rationale,
+    rhythmDescription: getRhythmDescription(clientRhythmDays),
   };
 }
 

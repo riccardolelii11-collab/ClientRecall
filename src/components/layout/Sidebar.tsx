@@ -21,7 +21,6 @@ export type NavTab =
   | 'clients'
   | 'appointments'
   | 'generator'
-  | 'imports'
   | 'settings';
 
 interface SidebarProps {
@@ -72,7 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'clients',
-      label: 'Clienti',
+      label: 'Clienti & Ritmi',
       icon: <Users className="w-4 h-4" />,
     },
     {
@@ -86,11 +85,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'generator',
       label: 'Generatore Messaggi',
       icon: <Sparkles className="w-4 h-4" />,
-    },
-    {
-      id: 'imports',
-      label: 'Importazioni Future',
-      icon: <CalendarRange className="w-4 h-4" />,
     },
     {
       id: 'settings',

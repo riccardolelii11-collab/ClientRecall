@@ -59,15 +59,20 @@ export interface ClientRecallAnalysis {
   client: Client;
   lastCompletedDate: string | null;
   daysSinceLast: number;
-  estimatedFrequencyDays: number;
+  clientRhythmDays: number; // Ritmo proprio di questo cliente (es. 1, 7, 14, 30...)
+  estimatedFrequencyDays: number; // retrocompatibile
+  gracePeriodDays: number; // Giorni di tolleranza prima del ricontatto specifico per questo ritmo
+  targetRecallDays: number; // Soglia effettiva di ricontatto (ritmo + tolleranza, es. 30 + 10 = 40 gg)
   isProvisional: boolean; // Pochi dati (< 2 appuntamenti svolti)
   hasFutureAppointment: boolean; // Ha già un appuntamento futuro fissato
   nextFutureAppointmentDate: string | null;
   completedAppointmentsCount: number;
   isRecallDue: boolean;
-  overdueDays: number;
+  overdueDays: number; // Giorni oltre il ritmo abituale
+  overdueBeyondThreshold: number; // Giorni oltre la soglia di tolleranza
   urgency: 'urgent' | 'due' | 'ok' | 'future_booked';
   rationale: string;
+  rhythmDescription: string;
 }
 
 export type ReminderPriority = 'high' | 'medium' | 'low';
