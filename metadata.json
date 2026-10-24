@@ -1,0 +1,6 @@
+{
+  "name": "ClientRecall",
+  "description": "Software moderno per piccoli professionisti e attività indipendenti per gestire i clienti e ricontattarli con messaggi AI personalizzati.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
