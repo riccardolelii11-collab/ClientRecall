@@ -3,12 +3,13 @@ import { Client, RecallReminder, RecallHistoryItem, UserProfile } from '../types
 export const initialUserProfile: UserProfile = {
   name: 'Riccardo Lelli',
   businessName: 'Studio FisioDynamics & Benessere',
-  profession: 'Fisioterapista & Posturologo',
-  category: 'Salute & Benessere',
+  profession: 'fisioterapista',
+  customProfessionTitle: 'Fisioterapista & Posturologo',
   email: 'riccardo.lelii11@gmail.com',
   phone: '+39 347 1234567',
   defaultChannel: 'whatsapp',
-  defaultRecallDays: 45,
+  defaultRecallDays: 21,
+  hasCompletedOnboarding: true,
   signature: 'Dott. Riccardo Lelli - Fisioterapista',
 };
 
@@ -28,6 +29,12 @@ export const initialClients: Client[] = [
     status: 'urgent',
     tags: ['Cervicale', 'Tecar', 'Prioritario'],
     createdAt: '2026-01-10',
+    pastAppointments: [
+      { id: 'app-1', date: '2026-08-15', service: 'Tecarterapia cervicale - Seduta 5/5', notes: 'Dolore quasi azzerato, concordato controllo dopo 45 giorni' },
+      { id: 'app-2', date: '2026-08-01', service: 'Tecarterapia cervicale - Seduta 4/5', notes: 'Miglioramento della rotazione laterale' },
+      { id: 'app-3', date: '2026-07-18', service: 'Tecarterapia cervicale - Seduta 3/5' },
+      { id: 'app-4', date: '2026-07-04', service: 'Prima visita e impostazione piano terapeutico' },
+    ],
   },
   {
     id: 'cli-2',
@@ -44,6 +51,10 @@ export const initialClients: Client[] = [
     status: 'urgent',
     tags: ['Postura', 'Smart Working'],
     createdAt: '2026-03-22',
+    pastAppointments: [
+      { id: 'app-5', date: '2026-09-10', service: 'Seduta riallineamento posturale', notes: 'Consigliati esercizi quotidiani per la fascia scapolare' },
+      { id: 'app-6', date: '2026-06-12', service: 'Trattamento decontratturante dorsale' },
+    ],
   },
   {
     id: 'cli-3',
@@ -60,6 +71,10 @@ export const initialClients: Client[] = [
     status: 'due',
     tags: ['Ergonomia', 'Aziendale'],
     createdAt: '2026-02-14',
+    pastAppointments: [
+      { id: 'app-7', date: '2026-09-28', service: 'Consulenza ergonomica studio', notes: 'Regolazione altezza sedia e supporto lombare' },
+      { id: 'app-8', date: '2026-05-14', service: 'Valutazione posturale' },
+    ],
   },
   {
     id: 'cli-4',
@@ -76,6 +91,10 @@ export const initialClients: Client[] = [
     status: 'due',
     tags: ['Sportivo', 'Gara Novembre', 'WhatsApp'],
     createdAt: '2026-05-18',
+    pastAppointments: [
+      { id: 'app-9', date: '2026-10-02', service: 'Massaggio sportivo polpacci e bicipite femorale', notes: 'Leggera contrattura a destra' },
+      { id: 'app-10', date: '2026-09-12', service: 'Defaticamento post allenamento lungo' },
+    ],
   },
   {
     id: 'cli-5',
@@ -92,6 +111,9 @@ export const initialClients: Client[] = [
     status: 'recent',
     tags: ['Lombare', 'Soddisfatta'],
     createdAt: '2026-07-04',
+    pastAppointments: [
+      { id: 'app-11', date: '2026-10-18', service: 'Valutazione posturale lombare', notes: 'Muscolatura paravertebrale rilassata' },
+    ],
   },
   {
     id: 'cli-6',
@@ -108,6 +130,11 @@ export const initialClients: Client[] = [
     status: 'due',
     tags: ['Spalla', 'SMS Only', 'Orari specifici'],
     createdAt: '2026-04-12',
+    pastAppointments: [
+      { id: 'app-12', date: '2026-09-01', service: 'Trattamento onde d’urto e mobilizzazione spalla', notes: 'Fase acuta risolta' },
+      { id: 'app-13', date: '2026-08-10', service: 'Trattamento spalla destra - seduta 2' },
+      { id: 'app-14', date: '2026-07-20', service: 'Prima valutazione tendinopatia cuffia dei rotatori' },
+    ],
   },
   {
     id: 'cli-7',
@@ -124,6 +151,10 @@ export const initialClients: Client[] = [
     status: 'paused',
     tags: ['In Pausa', 'Rieducazione'],
     createdAt: '2026-01-28',
+    pastAppointments: [
+      { id: 'app-15', date: '2026-06-10', service: 'Test propriocettivo e dimissione ciclo caviglia' },
+      { id: 'app-16', date: '2026-05-20', service: 'Rieducazione funzionale caviglia seduta 6' },
+    ],
   },
   {
     id: 'cli-8',
@@ -140,6 +171,9 @@ export const initialClients: Client[] = [
     status: 'recent',
     tags: ['Nuovo Cliente', 'Piano Aperto'],
     createdAt: '2026-10-15',
+    pastAppointments: [
+      { id: 'app-17', date: '2026-10-21', service: 'Prima visita posturale e anamnesi biomeccanica' },
+    ],
   },
 ];
 
@@ -236,6 +270,6 @@ export const initialHistory: RecallHistoryItem[] = [
     messageText:
       'Gentile Laura, spero le tue vacanze stiano procedendo al meglio. Quando rientri in città se hai piacere possiamo fare una breve verifica della caviglia.',
     outcome: 'copied',
-    outcomeNotes: 'Messaggio preparato e inviato.',
+    outcomeNotes: 'Bozza preparata e copiata dal generatore.',
   },
 ];

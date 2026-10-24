@@ -13,9 +13,8 @@ import {
   ShieldCheck,
   Edit3,
   SlidersHorizontal,
-  ChevronDown,
   Eye,
-  CheckCircle2,
+  Info,
 } from 'lucide-react';
 import { Client, GeneratedOption, UserProfile, RecallChannel, RecallReminder } from '../../types';
 import { aiService } from '../../services/aiService';
@@ -52,13 +51,13 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
   const [customClientService, setCustomClientService] = useState<string>('');
 
   // Generation parameters
-  const [reason, setReason] = useState<string>('Check-in periodico / Controllo di routine');
+  const [reason, setReason] = useState<string>('Controllo periodico / Check-in di routine');
   const [channel, setChannel] = useState<RecallChannel>('whatsapp');
   const [tone, setTone] = useState<string>('Caldo e amichevole');
   const [length, setLength] = useState<string>('Medio (equilibrato)');
   const [customContext, setCustomContext] = useState<string>('');
 
-  // Preview mode (Editor vs Channel Simulator)
+  // Preview mode
   const [previewMode, setPreviewMode] = useState<'editor' | 'preview'>('editor');
 
   // Generation state
@@ -67,7 +66,6 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
   const [selectedOptionId, setSelectedOptionId] = useState<string>('1');
   const [editedText, setEditedText] = useState<string>('');
   const [isCopied, setIsCopied] = useState<boolean>(false);
-  const [activeEngineSource, setActiveEngineSource] = useState<string>('');
 
   useEffect(() => {
     if (selectedClientFromNav) {
@@ -89,7 +87,7 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
 
   const getEffectiveService = () => {
     if (isCustomClient) return customClientService || 'il nostro servizio';
-    return activeClient?.lastService || 'la nostra ultima sessione';
+    return activeClient?.lastService || 'l’ultimo appuntamento insieme';
   };
 
   const handleGenerate = async () => {
@@ -101,30 +99,35 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
       const clientService = getEffectiveService();
       const clientNotes = isCustomClient ? '' : activeClient?.notes || '';
 
+      const daysAgo = activeClient?.lastContactDate
+        ? Math.max(1, Math.round(Math.abs(new Date('2026-10-24').getTime() - new Date(activeClient.lastContactDate).getTime()) / (1000 * 60 * 60 * 24)))
+        : undefined;
+
       const result = await aiService.generateRecallMessages(
         {
           clientId: isCustomClient ? undefined : activeClient?.id,
           clientName,
           clientService,
           clientNotes,
+          lastContactDaysAgo: daysAgo,
           reason,
           channel,
           tone,
           length,
           customContext,
+          profession: profile.profession,
         },
         profile
       );
 
       setGeneratedOptions(result.options);
-      setActiveEngineSource(result.source);
       if (result.options.length > 0) {
         setSelectedOptionId(result.options[0].id);
         setEditedText(result.options[0].text);
       }
-      onShowToast('3 varianti generate!', 'Puoi scegliere la migliore e ritoccarla a mano.');
+      onShowToast('Bozze generate con successo', 'Puoi scegliere la variante migliore e modificarla liberamente.');
     } catch {
-      onShowToast('Errore di generazione', 'Riprova tra poco.', 'error');
+      onShowToast('Errore di elaborazione', 'Riprova tra poco.', 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -147,7 +150,7 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
     try {
       await navigator.clipboard.writeText(editedText);
       setIsCopied(true);
-      onShowToast('Messaggio copiato!', 'Pronto da incollare su WhatsApp, Email o SMS.');
+      onShowToast('Bozza copiata negli appunti!', 'Ora puoi incollarla nel tuo canale (WhatsApp, Email, SMS).');
       setTimeout(() => setIsCopied(false), 2500);
     } catch {
       onShowToast('Copia manuale', 'Seleziona e copia il testo.', 'info');
@@ -163,7 +166,7 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
       reason,
       messageText: editedText,
     });
-    onShowToast('Salvato in Cronologia', 'Potrai segnare la risposta del cliente.');
+    onShowToast('Bozza registrata in Cronologia', 'Potrai annotare l’esito quando il cliente risponderà.');
   };
 
   const handleCreateReminder = () => {
@@ -193,23 +196,23 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
         <div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-            Compositore Recall AI
+            Generatore Recall AI Dimostrativo
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Personalizza il messaggio in base al rapporto con il cliente e copialo con un clic.
+            Componi messaggi personalizzati per ricontattare i clienti al momento giusto dopo il loro appuntamento.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto text-xs text-slate-500 bg-white border border-slate-200/80 px-3 py-1.5 rounded-xl shadow-2xs">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          <span>Nessun invio automatico: piena revisione umana</span>
+        <div className="flex items-center gap-2 self-start sm:self-auto text-xs text-teal-900 bg-teal-50 border border-teal-200/60 px-3.5 py-1.5 rounded-xl shadow-2xs">
+          <ShieldCheck className="w-4 h-4 text-teal-700" />
+          <span>Generazione dimostrativa locale · Nessun invio automatico</span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Generator Form (5 cols) */}
         <div className="lg:col-span-5 space-y-5">
-          <div className="bg-white rounded-2xl border border-slate-200/70 p-6 shadow-xs space-y-5">
+          <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs space-y-5">
             {/* Target Client */}
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -219,7 +222,7 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsCustomClient(!isCustomClient)}
-                  className="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+                  className="text-xs font-medium text-teal-700 hover:text-teal-900 transition-colors"
                 >
                   {isCustomClient ? 'Seleziona da rubrica' : '+ Altro cliente'}
                 </button>
@@ -237,20 +240,20 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
                         if (cli.notes) setCustomContext(cli.notes);
                       }
                     }}
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 font-medium text-slate-800"
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-700/20 focus:border-teal-700 font-medium text-slate-800"
                   >
                     {clients.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name} ({c.companyOrRole})
+                        {c.name} — {c.lastService} ({c.preferredChannel.toUpperCase()})
                       </option>
                     ))}
                   </select>
 
                   {activeClient && (
-                    <div className="px-3.5 py-2.5 bg-slate-50/70 rounded-xl text-xs text-slate-600 space-y-0.5 border border-slate-100">
-                      <p className="font-semibold text-slate-900">{activeClient.name}</p>
-                      <p className="text-slate-500 text-[11px]">
-                        Servizio: <span className="text-slate-700">{activeClient.lastService}</span> · Ultimo: <span className="font-mono tabular-nums text-slate-700">{activeClient.lastContactDate}</span>
+                    <div className="px-3.5 py-2.5 bg-teal-50/40 rounded-xl text-xs text-slate-600 space-y-0.5 border border-teal-900/10">
+                      <p className="font-semibold text-teal-950">{activeClient.name}</p>
+                      <p className="text-teal-900/80 text-[11px]">
+                        Ultimo appuntamento: <span className="font-mono tabular-nums text-teal-950 font-medium">{activeClient.lastContactDate}</span> · Servizio: {activeClient.lastService}
                       </p>
                     </div>
                   )}
@@ -262,14 +265,14 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
                     value={customClientName}
                     onChange={(e) => setCustomClientName(e.target.value)}
                     placeholder="Nome cliente (es. Marco Rossi)"
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-700/20 focus:border-teal-700"
                   />
                   <input
                     type="text"
                     value={customClientService}
                     onChange={(e) => setCustomClientService(e.target.value)}
-                    placeholder="Ultimo servizio (es. Consulenza fiscale)"
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600"
+                    placeholder="Ultimo servizio ricevuto (es. Seduta posturale)"
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-700/20 focus:border-teal-700"
                   />
                 </div>
               )}
@@ -278,18 +281,18 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
             {/* Motivo del Contatto */}
             <div>
               <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">
-                Motivo del Recall
+                Motivo del Contatto
               </label>
               <select
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-800"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-700/20 focus:border-teal-700 text-slate-800"
               >
-                <option value="Check-in periodico / Controllo di routine">Check-in periodico / Controllo di routine</option>
-                <option value="Follow-up post seduta o servizio">Follow-up post seduta o servizio</option>
-                <option value="Proposta rinnovo o nuovo pacchetto">Proposta rinnovo o nuovo pacchetto</option>
+                <option value="Controllo periodico / Check-in di routine">Controllo periodico / Check-in di routine</option>
+                <option value="Follow-up post seduta o appuntamento">Follow-up post seduta o appuntamento</option>
+                <option value="Proposta nuovo ciclo o nuovo appuntamento">Proposta nuovo ciclo o nuovo appuntamento</option>
                 <option value="Anniversario / Auguri cliente">Anniversario / Auguri cliente</option>
-                <option value="Riattivazione cliente inattivo">Riattivazione cliente inattivo</option>
+                <option value="Riattivazione cliente inattivo da tempo">Riattivazione cliente inattivo da tempo</option>
                 <option value="Disponibilità limitata / Nuovi slot in agenda">Disponibilità limitata / Nuovi slot in agenda</option>
                 <option value="Richiesta feedback o recensione">Richiesta feedback o recensione</option>
               </select>
@@ -303,9 +306,9 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { id: 'whatsapp', label: 'WhatsApp', icon: <MessageCircle className="w-3.5 h-3.5 text-emerald-600" /> },
-                  { id: 'email', label: 'Email', icon: <Mail className="w-3.5 h-3.5 text-sky-600" /> },
+                  { id: 'email', label: 'Email', icon: <Mail className="w-3.5 h-3.5 text-teal-600" /> },
                   { id: 'sms', label: 'SMS', icon: <Smartphone className="w-3.5 h-3.5 text-amber-600" /> },
-                  { id: 'dm', label: 'Social DM', icon: <MessageCircle className="w-3.5 h-3.5 text-indigo-600" /> },
+                  { id: 'dm', label: 'Social DM', icon: <MessageCircle className="w-3.5 h-3.5 text-teal-700" /> },
                 ].map((item) => (
                   <button
                     key={item.id}
@@ -313,7 +316,7 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
                     onClick={() => setChannel(item.id as RecallChannel)}
                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all ${
                       channel === item.id
-                        ? 'border-indigo-600 bg-indigo-50/60 text-indigo-950 font-semibold shadow-2xs'
+                        ? 'border-teal-700 bg-teal-50/80 text-teal-950 font-semibold shadow-2xs'
                         : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                     }`}
                   >
@@ -328,12 +331,12 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">
-                  Tono
+                  Tono di Voce
                 </label>
                 <select
                   value={tone}
                   onChange={(e) => setTone(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-800"
+                  className="w-full px-3 py-2 text-xs bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-700/20 focus:border-teal-700 text-slate-800"
                 >
                   <option value="Caldo e amichevole">Caldo e amichevole</option>
                   <option value="Professionale ed elegante">Professionale ed elegante</option>
@@ -350,7 +353,7 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
                 <select
                   value={length}
                   onChange={(e) => setLength(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 text-slate-800"
+                  className="w-full px-3 py-2 text-xs bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-700/20 focus:border-teal-700 text-slate-800"
                 >
                   <option value="Breve (sintetico)">Breve (~2-3 frasi)</option>
                   <option value="Medio (equilibrato)">Medio (bilanciato)</option>
@@ -359,17 +362,17 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
               </div>
             </div>
 
-            {/* Contesto specifico */}
+            {/* Dettagli extra */}
             <div>
               <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">
-                Dettagli Extra o Offerta
+                Dettagli Extra o Note sul Cliente
               </label>
               <textarea
                 rows={2}
                 value={customContext}
                 onChange={(e) => setCustomContext(e.target.value)}
-                placeholder="es. Si era trovato bene con il massaggio decontratturante; proporre lo slot di martedì."
-                className="w-full px-3.5 py-2.5 text-xs bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 resize-none text-slate-800 leading-relaxed"
+                placeholder="es. Si era trovato bene con il trattamento; proporre lo slot di martedì."
+                className="w-full px-3.5 py-2.5 text-xs bg-slate-50/70 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-700/20 focus:border-teal-700 resize-none text-slate-800 leading-relaxed"
               />
             </div>
 
@@ -378,17 +381,17 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
               type="button"
               onClick={handleGenerate}
               disabled={isGenerating}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-sm shadow-indigo-600/20 active:scale-[0.99]"
+              className="w-full py-3 px-4 bg-teal-800 hover:bg-teal-900 disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-sm shadow-teal-900/20 active:scale-[0.99]"
             >
-              <Sparkles className={`w-4 h-4 text-indigo-200 ${isGenerating ? 'animate-spin' : ''}`} />
-              <span>{isGenerating ? 'Generazione in corso...' : 'Rigenera Varianti'}</span>
+              <Sparkles className={`w-4 h-4 text-teal-200 ${isGenerating ? 'animate-spin' : ''}`} />
+              <span>{isGenerating ? 'Generazione in corso...' : 'Rigenera Bozze Dimostrative'}</span>
             </button>
           </div>
         </div>
 
         {/* Right Column: Output Canvas (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="bg-white rounded-2xl border border-slate-200/70 p-6 shadow-xs flex flex-col justify-between min-h-[580px]">
+          <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs flex flex-col justify-between min-h-[580px]">
             <div>
               {/* Header with Variant Tabs & Preview Switcher */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
@@ -401,12 +404,12 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
                   </p>
                 </div>
 
-                <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl self-start sm:self-auto">
+                <div className="flex items-center gap-1 p-1 bg-slate-100/80 rounded-xl self-start sm:self-auto">
                   <button
                     onClick={() => setPreviewMode('editor')}
                     className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
                       previewMode === 'editor'
-                        ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                        ? 'bg-white text-teal-950 shadow-2xs font-semibold'
                         : 'text-slate-500 hover:text-slate-900'
                     }`}
                   >
@@ -417,7 +420,7 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
                     onClick={() => setPreviewMode('preview')}
                     className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-lg transition-colors ${
                       previewMode === 'preview'
-                        ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                        ? 'bg-white text-teal-950 shadow-2xs font-semibold'
                         : 'text-slate-500 hover:text-slate-900'
                     }`}
                   >
@@ -436,11 +439,11 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
                       onClick={() => handleSelectOption(opt)}
                       className={`px-3.5 py-1.5 text-xs font-medium rounded-xl whitespace-nowrap transition-all border ${
                         selectedOptionId === opt.id
-                          ? 'bg-slate-900 text-white border-slate-900 shadow-2xs font-semibold'
+                          ? 'bg-teal-900 text-white border-teal-900 shadow-2xs font-semibold'
                           : 'bg-white text-slate-600 border-slate-200/80 hover:bg-slate-50'
                       }`}
                     >
-                      <span>Opzione {idx + 1}: {opt.title}</span>
+                      <span>Variante {idx + 1}: {opt.title}</span>
                     </button>
                   ))}
                 </div>
@@ -450,7 +453,7 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
               {previewMode === 'editor' ? (
                 <div className="mt-4 space-y-2">
                   <div className="flex items-center justify-between text-[11px] text-slate-400">
-                    <span>Modifica il testo liberamente:</span>
+                    <span>Modifica il testo in tempo reale prima di copiarlo:</span>
                     <div className="flex items-center gap-2 font-mono tabular-nums">
                       <span>{wordCount} parole</span>
                       <span>·</span>
@@ -467,8 +470,8 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
                       setEditedText(e.target.value);
                       setIsCopied(false);
                     }}
-                    className="w-full p-4 sm:p-5 text-sm bg-slate-50/60 border border-slate-200/90 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 transition-all font-sans leading-relaxed text-slate-800 resize-y"
-                    placeholder="Il testo del messaggio apparirà qui..."
+                    className="w-full p-4 sm:p-5 text-sm bg-slate-50/60 border border-slate-200/90 rounded-2xl focus:outline-none focus:ring-2 focus:ring-teal-700/20 focus:border-teal-700 transition-all font-sans leading-relaxed text-slate-800 resize-y"
+                    placeholder="Il testo della bozza apparirà qui..."
                   />
 
                   {isSMS && characterCount > 160 && (
@@ -482,7 +485,7 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
                 <div className="mt-4 p-6 bg-slate-100/70 rounded-2xl border border-slate-200/60 space-y-3">
                   <div className="flex items-center justify-between text-xs text-slate-500 pb-2 border-b border-slate-200/60">
                     <span className="font-semibold text-slate-700">
-                      Anteprima invio ({channel.toUpperCase()})
+                      Anteprima canale ({channel.toUpperCase()})
                     </span>
                     <span className="text-[11px] text-slate-400">Destinatario: {getEffectiveClientName()}</span>
                   </div>
@@ -492,7 +495,7 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
                       {editedText}
                     </p>
                     <div className="flex justify-end pt-1">
-                      <span className="text-[10px] text-slate-400 font-mono">10:42</span>
+                      <span className="text-[10px] text-slate-400 font-mono">11:15</span>
                     </div>
                   </div>
                 </div>
@@ -528,7 +531,7 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
                 className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-xs active:scale-[0.98] ${
                   isCopied
                     ? 'bg-emerald-600 text-white'
-                    : 'bg-slate-900 hover:bg-slate-800 text-white'
+                    : 'bg-teal-800 hover:bg-teal-900 text-white shadow-teal-900/10'
                 }`}
               >
                 {isCopied ? (

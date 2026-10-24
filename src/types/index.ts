@@ -2,27 +2,77 @@ export type RecallChannel = 'whatsapp' | 'email' | 'sms' | 'call' | 'dm';
 
 export type ClientStatus = 'urgent' | 'due' | 'recent' | 'paused';
 
+export type ProfessionType =
+  | 'barbiere'
+  | 'parrucchiere'
+  | 'estetista'
+  | 'fisioterapista'
+  | 'personal_trainer'
+  | 'altro';
+
+export type AppointmentStatus = 'svolto' | 'programmato' | 'annullato';
+
+export interface Appointment {
+  id: string;
+  userId?: string;
+  clientId: string;
+  clientName?: string;
+  date: string; // YYYY-MM-DD
+  service: string;
+  status: AppointmentStatus;
+  notes?: string;
+  createdAt?: string;
+}
+
+// Retrocompatibilità con vecchie strutture
+export interface AppointmentRecord {
+  id: string;
+  date: string; // YYYY-MM-DD
+  service: string;
+  notes?: string;
+  status?: AppointmentStatus;
+}
+
 export interface Client {
   id: string;
+  userId?: string;
   name: string;
-  companyOrRole: string;
-  category: string;
-  phone: string;
-  email: string;
+  phone?: string;
+  email?: string;
   preferredChannel: RecallChannel;
-  lastContactDate: string; // YYYY-MM-DD
+  companyOrRole?: string;
+  category?: string;
+  lastContactDate: string; // Data ultimo appuntamento YYYY-MM-DD
   recommendedRecallDays: number;
   lastService: string;
-  notes: string;
-  status: ClientStatus;
-  tags: string[];
+  notes?: string;
+  status?: ClientStatus;
+  tags?: string[];
   createdAt: string;
+  pastAppointments?: AppointmentRecord[];
+}
+
+export interface ClientRecallAnalysis {
+  clientId: string;
+  client: Client;
+  lastCompletedDate: string | null;
+  daysSinceLast: number;
+  estimatedFrequencyDays: number;
+  isProvisional: boolean; // Pochi dati (< 2 appuntamenti svolti)
+  hasFutureAppointment: boolean; // Ha già un appuntamento futuro fissato
+  nextFutureAppointmentDate: string | null;
+  completedAppointmentsCount: number;
+  isRecallDue: boolean;
+  overdueDays: number;
+  urgency: 'urgent' | 'due' | 'ok' | 'future_booked';
+  rationale: string;
 }
 
 export type ReminderPriority = 'high' | 'medium' | 'low';
 
 export interface RecallReminder {
   id: string;
+  userId?: string;
   clientId: string;
   clientName: string;
   dueDate: string; // YYYY-MM-DD
@@ -43,6 +93,7 @@ export type RecallOutcome =
 
 export interface RecallHistoryItem {
   id: string;
+  userId?: string;
   clientId: string;
   clientName: string;
   date: string; // ISO string
@@ -56,13 +107,14 @@ export interface RecallHistoryItem {
 export interface UserProfile {
   name: string;
   businessName: string;
-  profession: string;
-  category: string;
+  profession: ProfessionType | string;
+  customProfessionTitle?: string;
   email: string;
   phone: string;
   defaultChannel: RecallChannel;
   defaultRecallDays: number;
-  signature: string;
+  hasCompletedOnboarding: boolean;
+  signature?: string;
 }
 
 export interface RecallGenerationRequest {
@@ -76,6 +128,7 @@ export interface RecallGenerationRequest {
   tone: string;
   length: string;
   customContext: string;
+  profession?: string;
 }
 
 export interface GeneratedOption {

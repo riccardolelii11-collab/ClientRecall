@@ -23,7 +23,7 @@ export const aiService = {
           customContext: req.customContext,
           professionalName: profile.name,
           businessName: profile.businessName,
-          businessField: profile.category,
+          profession: profile.profession,
         }),
       });
 
@@ -34,7 +34,7 @@ export const aiService = {
         }
       }
     } catch {
-      // Graceful fallback to client generation engine
+      // Fallback to client generation engine
     }
 
     return {
@@ -45,19 +45,65 @@ export const aiService = {
 
   generateClientSideMessages(req: RecallGenerationRequest, profile: UserProfile): GeneratedOption[] {
     const clientName = req.clientName?.trim() || 'Gentile Cliente';
-    const service = req.clientService?.trim() || 'l’ultima sessione insieme';
+    const service = req.clientService?.trim() || 'l’ultimo appuntamento insieme';
     const proName = profile.name?.trim() || 'Il tuo professionista';
     const biz = profile.businessName?.trim() || '';
     const extra = req.customContext?.trim() ? ` ${req.customContext.trim()}` : '';
     const channel = (req.channel || 'whatsapp').toLowerCase();
-    const reason = req.reason || 'Check-in periodico';
-    const tone = req.tone || 'Caldo e amichevole';
-    const length = req.length || 'Medio';
+    const profession = (profile.profession || req.profession || 'barbiere').toLowerCase();
+    const daysAgo = req.lastContactDaysAgo ? `circa ${req.lastContactDaysAgo} giorni` : "un po' di tempo";
 
     const isEmail = channel.includes('email');
     const isSMS = channel.includes('sms');
 
+    // SMS: Breve, sintetico (<160 caratteri)
     if (isSMS) {
+      if (profession.includes('barb')) {
+        return [
+          {
+            id: 'opt-sms-1',
+            title: 'Rinfresco Taglio & Barba',
+            text: `Ciao ${clientName}! È trascorso ${daysAgo} dall'ultimo taglio. Ho qualche disponibilità per giovedì/venerdì se vuoi sistemare il look. A presto, ${biz || proName}`,
+          },
+          {
+            id: 'opt-sms-2',
+            title: 'Check rapido slot',
+            text: `Ciao ${clientName}, promemoria per ${service}! Sto aggiornando gli slot della settimana: fammi sapere se vuoi bloccare il tuo orario. ${proName}`,
+          },
+        ];
+      }
+
+      if (profession.includes('parrucch')) {
+        return [
+          {
+            id: 'opt-sms-1',
+            title: 'Ritocco & Cura',
+            text: `Ciao ${clientName}! È trascorso ${daysAgo} da ${service}. Se vuoi rinfrescare piega o colore prima del fine settimana, scrivimi! ${biz || proName}`,
+          },
+          {
+            id: 'opt-sms-2',
+            title: 'Promemoria Salone',
+            text: `Ciao ${clientName}, spero tutto bene! Ho ancora qualche posto libero per la prossima settimana per ${service}. Buona giornata, ${proName}`,
+          },
+        ];
+      }
+
+      if (profession.includes('fisio') || profession.includes('osteo')) {
+        return [
+          {
+            id: 'opt-sms-1',
+            title: 'Controllo Benessere',
+            text: `Ciao ${clientName}, come procede dopo ${service}? Volevo fare un check e sapere se la postura/il fastidio è migliorato. ${proName}`,
+          },
+          {
+            id: 'opt-sms-2',
+            title: 'Seduta di Mantenimento',
+            text: `Ciao ${clientName}! È il momento consigliato per il controllo di mantenimento post ${service}. Se vuoi fare il punto: ${proName}`,
+          },
+        ];
+      }
+
+      // SMS Generico / Estetica / Trainer
       return [
         {
           id: 'opt-sms-1',
@@ -66,135 +112,133 @@ export const aiService = {
         },
         {
           id: 'opt-sms-2',
-          title: 'Check-in Disponibilità',
-          text: `Ciao ${clientName}, è tempo di un rapido controllo per ${service}. Ho alcuni orari liberi per le prossime settimane. Se vuoi fare un punto: ${proName}`,
-        },
-        {
-          id: 'opt-sms-3',
-          title: 'Promemoria Diretto',
-          text: `Ciao ${clientName}! Promemoria amichevole per ${service}.${extra} Fammi sapere se desideri fissare un momento dedicato. Buona giornata, ${proName}`,
+          title: 'Check Disponibilità',
+          text: `Ciao ${clientName}, è tempo di un rapido controllo per ${service}. Ho alcuni orari liberi per le prossime settimane se vuoi fissare: ${proName}`,
         },
       ];
     }
 
+    // EMAIL: Più formale e strutturata
     if (isEmail) {
-      const formalGreeting = tone.includes('Formale') || tone.includes('Professionale')
-        ? `Gentile ${clientName},`
-        : `Gentile ${clientName}, spero che questo messaggio ti trovi bene.`;
-
       return [
         {
           id: 'opt-em-1',
-          title: 'Relazionale & Professionale',
-          text: `Oggetto: Un cordiale saluto e aggiornamento post ${service}
+          title: 'Professionale & Attenta',
+          text: `Oggetto: Un saluto e aggiornamento dopo ${service} - ${biz || proName}
 
-${formalGreeting}
+Gentile ${clientName},
 
-Ti contatto con piacere per sapere come stanno procedendo le cose a seguito del nostro incontro dedicato a ${service}. Per me è prioritario accertarmi che i risultati siano all'altezza delle tue aspettative e che non siano insorte nuove necessità o dubbi.
+spero che la settimana stia procedendo per il meglio.
 
-${extra ? extra + '\n\n' : ''}In base al percorso impostato, questo potrebbe essere il momento opportuno per fare un rapido punto della situazione o pianificare il prossimo passo.
+Ti contatto con piacere per sapere come stanno andando le cose a seguito del nostro appuntamento dedicato a ${service}. Per me è fondamentale accertarmi che i risultati siano pienamente soddisfacenti e duraturi nel tempo.
 
-Se hai piacere di confrontarti, rimango volentieri a tua disposizione. Puoi rispondere direttamente a questa email indicandomi i giorni o gli orari che ti sono più comodi.
+${extra ? extra + '\n\n' : ''}In base al percorso abituale e al tempo trascorso, questo è il momento ideale per valutare se programmare un controllo o proseguire con la cura necessaria.
+
+Se desideri riservare uno spazio dedicato o hai domande, puoi rispondere direttamente a questa email indicandomi le tue disponibilità di giorni e orari.
 
 Un caro saluto,
 ${proName}
-${biz ? biz + '\n' : ''}${profile.email ? profile.email : ''}`,
+${biz ? biz + '\n' : ''}${profile.phone ? 'Tel: ' + profile.phone : ''}`,
         },
         {
           id: 'opt-em-2',
           title: 'Diretta & Operativa',
-          text: `Oggetto: Verifica andamento e prossimi appuntamenti - ${biz || proName}
+          text: `Oggetto: Disponibilità in agenda per il prossimo appuntamento (${service})
 
 Gentile ${clientName},
 
-ti scrivo un breve aggiornamento relativo a ${service}.
+è trascorso ${daysAgo} dal nostro ultimo incontro dedicato a ${service}.
 
-Avendo completato l'attività iniziale, desidero verificare con te se tutto procede secondo i piani concordati o se desideri impostare la fase successiva.${extra ? '\n\n' + extra : ''}
+Sto attualmente organizzando le disponibilità in agenda per le prossime due settimane e, prima di aprire gli orari ad altre prenotazioni, ho il piacere di ricontattare i miei clienti abituali.
 
-Attualmente ho delle aperture in calendario nelle prossime due settimane. Se vuoi riservare uno spazio dedicato prima che gli slot si esauriscano, fammi sapere le tue preferenze.
+${extra ? extra + '\n\n' : ''}Se hai piacere di fissare la prossima data all'orario che ti è più comodo, fammi sapere le tue preferenze.
 
-Resto a disposizione per qualsiasi chiarimento.
+Resto a tua completa disposizione.
 
 Cordiali saluti,
-${proName}`,
-        },
-        {
-          id: 'opt-em-3',
-          title: 'Proposta di Valore & Rinnovo',
-          text: `Oggetto: Priorità e disponibilità riservata per te - ${biz || proName}
-
-Gentile ${clientName},
-
-è trascorso del tempo dal nostro ultimo lavoro su ${service} e spero che le attività stiano dando i frutti desiderati.
-
-Sto programmando l'agenda per il prossimo periodo: prima di aprire le disponibilità a nuove richieste, ho molto piacere di ricontattare i clienti con cui ho già collaborato con soddisfazione.
-
-${extra ? extra + '\n\n' : ''}Se desideri proseguire il percorso o concordare una revisione mirata, sarò felice di organizzare un momento su misura.
-
-A presto,
 ${proName}
 ${biz}`,
         },
       ];
     }
 
-    // Default WhatsApp & Direct Message
-    if (reason.toLowerCase().includes('feedback') || reason.toLowerCase().includes('recensione')) {
+    // WHATSAPP & CANALI DIRETTI (specifici per professione)
+    if (profession.includes('barb')) {
       return [
         {
-          id: 'opt-fb-1',
-          title: 'Ascolto & Cura',
-          text: `Ciao ${clientName}! Spero stia andando tutto alla grande 😊\n\nCi tenevo a ringraziarti ancora per la fiducia su ${service}. La tua opinione per me è preziosissima: come ti sei trovato/a complessivamente? C'è qualcosa che possiamo migliorare o approfondire?\n\nSe ti fa piacere condividere due righe di feedback, mi faresti un regalo enorme! A presto, ${proName}`,
+          id: 'opt-w-1',
+          title: 'Amichevole & Look in Ordine',
+          text: `Ciao ${clientName}! Come stai? Spero che la settimana stia andando bene 😊\n\nÈ passato ${daysAgo} dall'ultimo ${service} e immagino sia arrivato il momento di rinfrescare il taglio e sistemare la barba prima che perda la forma! ✂️\n\nSto organizzando l'agenda per questa e la prossima settimana: se vuoi passare, scrivimi pure che ti blocco un orario comodo.${extra ? '\n\n' + extra : ''}\n\nA presto!\n${proName} (${biz || 'Barberia'})`,
         },
         {
-          id: 'opt-fb-2',
-          title: 'Sintetico & Leggero',
-          text: `Ciao ${clientName}, spero tu stia passando una buona settimana!\n\nVolevo solo chiederti se hai un minuto per dirmi come ti sei trovato con ${service}.${extra ? ' ' + extra : ''} Il tuo parere mi aiuta a perfezionare costantemente il servizio!\n\nUn abbraccio, ${proName}`,
+          id: 'opt-w-2',
+          title: 'Diretto con Proposta Slot',
+          text: `Ciao ${clientName}! 👋 Veloce promemoria per il taglio: sono passate circa ${req.lastContactDaysAgo ? Math.round(req.lastContactDaysAgo / 7) : 3} settimane dall'ultima volta.\n\nHo ancora qualche posto libero giovedì pomeriggio e venerdì mattina. Se vuoi rimettere in ordine il look, fammi un fischio e ti tengo il posto!\n\nBuona giornata, ${proName}`,
         },
         {
-          id: 'opt-fb-3',
-          title: 'Con Link Recensione',
-          text: `Ciao ${clientName}! 👋 Spero che i benefici di ${service} stiano continuando!\n\nSe sei rimasto soddisfatto del lavoro svolto insieme, ti andrebbe di lasciarmi una breve recensione a questo link? Per un'attività indipendente come la mia fa davvero la differenza! 🌟\n\nGrazie di cuore e un caro saluto, ${proName}`,
+          id: 'opt-w-3',
+          title: 'Soft & Riconoscimento',
+          text: `Ciao ${clientName}, spero tutto alla grande! Ci tenevo a ringraziarti ancora per essere passato l'ultima volta. Come sta tenendo il taglio? Se hai bisogno di una rifinitura prima del weekend, sai dove trovarmi! 😉 A presto, ${proName}`,
         },
       ];
     }
 
-    if (reason.toLowerCase().includes('rinnovo') || reason.toLowerCase().includes('offerta')) {
+    if (profession.includes('parrucch')) {
       return [
         {
-          id: 'opt-rn-1',
-          title: 'Proposta Riservata',
-          text: `Ciao ${clientName}! Spero tutto bene 😊\n\nVisto che è trascorso un po' di tempo da ${service}, volevo farti sapere che sto aprendo le nuove disponibilità per le prossime settimane. ${extra ? '\n\n' + extra : ''}\n\nMi fa molto piacere dare la precedenza a chi già mi conosce: se vuoi proseguire il percorso, scrivimi pure qui così ti riservo l'orario migliore!\n\nA presto, ${proName}`,
+          id: 'opt-w-1',
+          title: 'Cura del Capello & Mantenimento',
+          text: `Ciao ${clientName}! Spero tu stia passando una splendida settimana ✨\n\nTi scrivo perché è trascorso ${daysAgo} dal nostro lavoro su ${service}. Solitamente questo è il periodo ideale per rinfrescare il colore, fare un trattamento nutriente o riprendere la piega affinché la chioma resti impeccabile e lucida! 💇‍♀️\n\n${extra ? extra + '\n\n' : ''}Se vuoi dedicarti un momento di relax in salone, dimmi pure quali giorni ti tornano meglio e ti riservo un appuntamento con piacere.\n\nUn abbraccio, ${proName}`,
         },
         {
-          id: 'opt-rn-2',
-          title: 'Diretta & Chiara',
-          text: `Ciao ${clientName}, come stai? Ti contatto perché in questo periodo molti clienti stanno pianificando il rinnovo per ${service}.${extra ? ' ' + extra : ''}\n\nSe hai piacere di fissare la prossima data prima che si riempia l'agenda, fammi sapere le tue disponibilità.\n\nBuona giornata! ${proName}`,
-        },
-        {
-          id: 'opt-rn-3',
-          title: 'Approccio Soft & Senza Impegno',
-          text: `Ciao ${clientName}! Un saluto veloce. Pensavo al nostro percorso su ${service} e mi farebbe piacere sapere come ti senti oggi.\n\nNessuna pressione: se senti il bisogno di una nuova seduta o di un aggiornamento, sai dove trovarmi. Sono qui per qualsiasi consiglio! 😊\n\nUn caro saluto, ${proName}`,
+          id: 'opt-w-2',
+          title: 'Nuove Aperture Salone',
+          text: `Ciao ${clientName}! 👋 Sto sistemando l'agenda per le prossime settimane. Visto il tempo trascorso da ${service}, volevo darti la precedenza prima che i fine settimana si riempiano.\n\nSe vuoi passare per una sistemata, rispondimi qui e troviamo l'orario perfetto per te!\n\nA presto, ${proName}`,
         },
       ];
     }
 
-    // Standard Check-in / Recall options
+    if (profession.includes('estet')) {
+      return [
+        {
+          id: 'opt-w-1',
+          title: 'Benessere & Risultati Duraturi',
+          text: `Ciao ${clientName}! Come stai? Spero tutto bene 😊\n\nÈ trascorso ${daysAgo} da ${service}. Per mantenere la pelle idratata e far durare i benefici del trattamento al massimo, questo è solitamente il momento consigliato per il richiamo periodico! 🌸\n\n${extra ? extra + '\n\n' : ''}Se hai voglia di concederti una pausa di benessere, scrivimi pure le tue preferenze e ti riservo il posto migliore.\n\nA presto! ${proName}`,
+        },
+        {
+          id: 'opt-w-2',
+          title: 'Promemoria Delicato',
+          text: `Ciao ${clientName}! Un caro saluto. Volevo sapere come ti sei trovata nei giorni successivi a ${service} e ricordarti che quando vuoi ripetere la seduta o fare un check, le disponibilità per la prossima settimana sono aperte.\n\nUn abbraccio, ${proName}`,
+        },
+      ];
+    }
+
+    if (profession.includes('fisio') || profession.includes('osteo')) {
+      return [
+        {
+          id: 'opt-w-1',
+          title: 'Controllo Clinico & Postura',
+          text: `Ciao ${clientName}! Come stai? Ci tenevo a fare un breve controllo per sapere come procede la situazione dopo ${service} svolto ${daysAgo} fa.\n\nIl fastidio/la mobilità è migliorata? Gli esercizi o le indicazioni posturali stanno dando sollievo?${extra ? '\n\n' + extra : ''}\n\nSe senti il bisogno di fare un punto della situazione o una seduta di mantenimento, fammi sapere senza impegno.\n\nUn saluto, ${proName}`,
+        },
+        {
+          id: 'opt-w-2',
+          title: 'Richiamo di Mantenimento',
+          text: `Gentile ${clientName}, un saluto. In base al ciclo terapeutico concordato per ${service}, questo è l'intervallo temporale raccomandato per consolidare i benefici ed evitare ricadute.\n\nSe desideri programmare la seduta di controllo, puoi indicarmi i giorni per te più agevoli.\n\nCordiali saluti, ${proName}`,
+        },
+      ];
+    }
+
+    // Default generico
     return [
       {
-        id: 'opt-std-1',
+        id: 'opt-w-1',
         title: 'Calda & Relazionale',
-        text: `Ciao ${clientName}! Come stai? Spero che la settimana stia procedendo bene 😊\n\nTi scrivo un attimo per sapere come vanno le cose a distanza di qualche tempo da ${service}. Ci tenevo sinceramente a fare un check e sapere se è tutto a posto o se avverti ancora qualche fastidio o necessità.${extra ? '\n\n' + extra : ''}\n\nFammi sapere con calma quando ti è più comodo!\n\nUn caro saluto, ${proName}`,
+        text: `Ciao ${clientName}! Come stai? Spero che la settimana stia procedendo per il meglio 😊\n\nÈ trascorso ${daysAgo} dal nostro ultimo appuntamento per ${service} e ci tenevo a fare un breve check per sapere come stanno andando le cose.${extra ? '\n\n' + extra : ''}\n\nSe hai piacere di fissare il prossimo controllo o vuoi passare a trovarmi, scrivimi pure qui e troviamo l'orario ideale!\n\nUn caro saluto, ${proName}`,
       },
       {
-        id: 'opt-std-2',
-        title: 'Diretta & Sintetica',
-        text: `Ciao ${clientName}, spero tutto bene! È passato un po' dal nostro ultimo incontro per ${service}. Volevo fare un rapido punto della situazione: come procede?${extra ? ' ' + extra : ''}\n\nSe vuoi programmare un controllo o hai qualche domanda, rispondimi pure qui.\n\nA presto, ${proName}`,
-      },
-      {
-        id: 'opt-std-3',
-        title: 'Con Disponibilità Agenda',
-        text: `Ciao ${clientName}! 👋 Sto aggiornando l'agenda per le prossime settimane e ho pensato a te. In base al lavoro fatto con ${service}, questo è solitamente il momento consigliato per fare una verifica di mantenimento.${extra ? '\n\n' + extra : ''}\n\nSe ti va di bloccare uno slot comodo senza impegno, dimmi pure quali giorni preferisci!\n\nBuona giornata, ${proName}`,
+        id: 'opt-w-2',
+        title: 'Diretta & con Slot Agenda',
+        text: `Ciao ${clientName}! 👋 Visto il tempo trascorso da ${service}, sto aggiornando le disponibilità per le prossime settimane.\n\nPrima di aprire l'agenda ad altre richieste, mi fa piacere ricontattarti: se vuoi bloccare il tuo consueto appuntamento, fammi sapere quali giorni preferisci!\n\nA presto, ${proName}`,
       },
     ];
   },
